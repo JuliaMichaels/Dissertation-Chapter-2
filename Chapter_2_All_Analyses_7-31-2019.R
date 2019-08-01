@@ -10,17 +10,14 @@ install.packages('colorspace'); install.packages('backports'); install.packages(
 install.packages('gridExtra')
 library('backports'); library('stringi')
 library('vegan'); library('tidyverse'); library('ggplot2')
-library('MASS');  library('scales')
+#library('MASS');  library('scales')
 library('lmerTest');
 library('viridis'); library('lme4'); library('dplyr')
 library('gridExtra')
 
 
-setwd("C:\\Users\\Julia Michaels\\Google Drive\\Dissertation Chapter 2\\Chapter_2_Analysis")
-
-
 # Load data ---------------------------------------------------------------
-calibration<-read.csv("2018 Inundation_Stopping 2018-03-19.csv")
+#calibration<-read.csv("2018 Inundation_Stopping 2018-03-19.csv")
 data_loggers_2018<-read.csv('2018_Levelloggers.csv')
 staff_gauge_2018<-read.csv('2017-2018 Staff Gauges All.csv')
 precip_2018<-read.csv('precipitation data_2018.csv')#in mm?
@@ -84,7 +81,7 @@ for(i in 2:ncol(DL2018)){
 
 dl_days_2018<-tibble(dl_days_2018, Pool.ID=colnames(DL2018))
 
-dl_days_2018<-dl_days_2018[-15,]
+#dl_days_2018<-dl_days_2018[-15,]
 
 # 2018 Pull out subset of dates from dataaloggers when staff gauges were also taken----------------------------
 
@@ -121,6 +118,7 @@ inundation_days_2018<-subset[-7,]%>%
   unite("Pool.ID", Pool, ID, sep=".") %>% 
   group_by(Pool.ID) %>% 
   summarize(days=mean(total_days_2018))
+#if there is staff gauge and data logger, take the mean of the two measurements 
 
 Inundation_2018<-full_join(inundation_days_2018, all_years_combined, by="Pool.ID")
 
@@ -1051,13 +1049,13 @@ ggplot(data=Transect_shannon, aes(x=Year,y=mean, group=Grazing))+
 qdata$Catchment<-as.character(qdata$Catchment)
 qdata$Catchment<-as.numeric(qdata$Catchment)
 specid<-read.csv("SpecID.csv", fileEncoding="UTF-8-BOM")
-qdata_separate<-qdata[-39,] #remove 39 if lookng at samples separately
 
-species<-dplyr::select(qdata_separate, -(Quadrat:Inundation.Type)) %>%  #average the three quadrat samples
+
+species<-dplyr::select(qdata, -(Quadrat:Inundation.Type)) %>%  #average the three quadrat samples
   group_by(Pool.ID)%>%
   summarise_all(funs(mean))
 
-pool_info<-qdata_separate %>% group_by(Pool.ID) %>% 
+pool_info<-qdata %>% group_by(Pool.ID) %>% 
   filter(row_number()==1) %>% 
   dplyr::select(Pool.ID:Inundation.Type, -Quadrat)
 
