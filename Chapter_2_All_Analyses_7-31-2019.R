@@ -379,7 +379,7 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
 
 #divide into grazed/newly grazed/ungrazed
 #ungrazed
-DL<-Calibrated_2017 %>% 
+DL<-DL2017 %>% 
   group_by(Date) %>% 
   summarise_all(funs(median)) 
 #DL$Date<-as.Date(DL$Date)
@@ -402,10 +402,13 @@ ng_days<-c()
 for(i in 1:nrow(newgrazed_days)){
   ng_days[i]<-rowMeans(newgrazed_days[i,2:ncol(newgrazed_days)], na.rm = TRUE)
 }
+
 newgrazed<-mean<-tibble (
   Date=newgrazed_days$Date, 
   Level=ng_days)
 
+newgrazed$Date<-as.Date(newgrazed$Date)
+ungrazed$Date<-as.Date(ungrazed$Date)
 #graph
 ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   geom_line(aes(x=Date, y=Level, color="Ungrazed", group=1), size=.75)+
@@ -420,11 +423,12 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = ungrazed$Date[seq(1, length(grazed$Date), by = 30)])+
+  theme(axis.text.x = element_text(angle=60, size=10))+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
+  #scale_x_discrete(breaks = ungrazed$Date[seq(1, length(grazed$Date), by = 30)])+
   labs(title="Average Vernal Pool Depth by Grazing, 2016-2017", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.x =element_blank())+
   theme(axis.title.y =element_text(size=30))+
   theme(legend.title =element_text(size=30))+
   theme(legend.text =element_text(size=30))+
@@ -556,7 +560,7 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   theme(axis.text.y =element_text(size=20))
 
 ###2016 DL hydrograph for grazed/ungrazed
-DL<-Calibrated_2016 %>% 
+DL<-DL2016 %>% 
   group_by(Date) %>% 
   summarise_all(funs(median)) 
 
@@ -581,7 +585,7 @@ newgrazed_days<-cbind(Date=DL$Date, newgrazed)
 #average each row
 ng_days<-c()
 for(i in 1:nrow(newgrazed_days)){
-  ng_days[i]<-rowMeans(newgrazed_days[i,2:ncol(newgrazed_days)], na.rm = TRUE)
+  ng_days[i]<-rowMeans(newgrazed_days[i,2:ncol(newgrazed_days)],na.rm = TRUE)
 }
 
 newgrazed<-mean<-tibble (
@@ -615,6 +619,7 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   #geom_line(data=precip_2016_by_day, mapping=aes(x=Date, y=rainfall_cm, linetype="Precipitation",group=1))+
  # scale_linetype_manual(name="", 
                #         values=c("Precipitation"="dashed"))+
+  scale_x_date(labels = date_format("%m-%d-%y"), breaks='7 days', expand = c(0,0), )+
   scale_color_manual(name = "", 
                      values = c("Ungrazed" = "blue", "Newly Grazed" = "turquoise", "Continuously Grazed"="maroon"))+
   geom_hline(yintercept=0, color='grey16')+
@@ -622,7 +627,7 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
   theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = ungrazed$Date[seq(1, length(ungrazed$Date), by = 30)])+
+ # scale_x_discrete(breaks = ungrazed$Date[seq(1, length(ungrazed$Date), by = 30)])+
   labs(title="Average Vernal Pool Depth by Grazing, 2015-2016", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
