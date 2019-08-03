@@ -160,7 +160,9 @@ SG<-left_join(hydrograph_2018, days_2018) %>%
 SG_graph<-SG %>% 
   group_by(Date, Treatment) %>% 
   summarize(Level=mean(Level))
-
+library('scales')
+SG_graph$Date<-as.Date(SG_graph$Date)
+precip_2018_by_day$Date<-as.Date(precip_2018_by_day$Date)
 #graph
 ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   geom_line(aes(color=Treatment), size=1)+
@@ -173,15 +175,15 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 7)])+
+  theme(axis.text.x = element_text(angle=60, size=15))+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
+  #scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 7)])+
   labs(title="Average Vernal Pool Depth by Grazing, 2017-2018", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.x =element_blank())+
   theme(axis.title.y =element_text(size=30))+
   theme(legend.title =element_text(size=30))+
   theme(legend.text =element_text(size=30))+
-  theme(axis.text.x =element_text(size=20))+
   theme(axis.text.y =element_text(size=20))
 
 
@@ -189,7 +191,7 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
 DL<-DL2018 %>% 
   group_by(Date) %>% 
   summarise_all(funs(median)) 
-#DL$Date<-as.Date(DL$Date)
+DL$Date<-as.Date(DL$Date)
 
 #ungrazed
 ungrazed <- DL[,colnames(DL) %in% days_2018$Pool.ID[days_2018$Treatment == 'Ungrazed']] 
@@ -225,11 +227,13 @@ for(i in 1:nrow(grazed_days)){
 grazed<-mean<-tibble (
   Date=grazed_days$Date, 
   Level=g_days)
+
 #graph
 ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   geom_line(aes(x=Date, y=Level, color="Ungrazed", group=1), size=.75)+
   geom_line(data=newgrazed, aes(x=Date, y=Level, color="Newly Grazed", group=1), size=.75)+
  # geom_line(data=grazed, aes(x=Date, y=Level, color='Continuously Grazed', group=1), size=.75)+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
   geom_line(data=precip_2018_by_day, mapping=aes(x=Date, y=rainfall_cm, linetype="Precipitation",group=1))+
   scale_linetype_manual(name="", 
                         values=c("Precipitation"="dashed"))+
@@ -239,8 +243,8 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = ungrazed$Date[seq(1, length(ungrazed$Date), by = 30)])+
+  theme(axis.text.x = element_text(angle=60, size=10))+
+ # scale_x_discrete(breaks = ungrazed$Date[seq(1, length(ungrazed$Date), by = 30)])+
   labs(title="Average Vernal Pool Depth by Grazing, 2017-2018", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
@@ -345,6 +349,8 @@ SG_graph<-SG %>%
   group_by(Date, Treatment) %>% 
   summarize(Level=mean(Level))
 
+SG_graph$Date<-as.Date(SG_graph$Date)
+
 #graph
 ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   geom_line(aes(color=Treatment), size=1)+
@@ -357,11 +363,12 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 7)])+
+  theme(axis.text.x = element_text(angle=60, size=10))+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
+  #scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 7)])+
   labs(title="Average Vernal Pool Depth by Grazing, 2016-2017", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.x =element_blank())+
   theme(axis.title.y =element_text(size=30))+
   theme(legend.title =element_text(size=30))+
   theme(legend.text =element_text(size=30))+
@@ -522,6 +529,8 @@ SG_graph<-SG %>%
   group_by(Date, Treatment) %>% 
   summarize(Level=mean(Level))
 
+SG_graph$Date<-as.Date(SG_graph$Date)
+
 #graph
 ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   geom_line(aes(color=Treatment), size=1)+
@@ -534,8 +543,9 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=25, size=10))+
-  scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 1)])+
+  theme(axis.text.x = element_text(angle=60, size=10))+
+  #scale_x_discrete(breaks = SG_graph$Date[seq(1, length(SG_graph$Date), by = 1)])+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
   labs(title="Average Vernal Pool Depth by Grazing, 2015-2016", y="Pool Depth", x="Date")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
@@ -677,7 +687,7 @@ anova<-aov(days~Treatment+Year, test2)
 summary(anova) 
 TukeyHSD(anova)
 
-m2<-lmer(days~Treatment+(1|Pool.ID)+(1|Pool.ID), data=test2)
+m2<-lmer(days~Treatment+(1|Pool.ID), data=test2)
 anova(m2)
 TukeyHSD(m2)
 
