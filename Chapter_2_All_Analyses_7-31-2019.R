@@ -578,20 +578,6 @@ ungrazed<-mean<-tibble (
   Date=ungrazed_days$Date, 
   Level=ug_days)
 
-#newly grazed
-newgrazed <- DL[,colnames(DL) %in% days_2016$Pool.ID[days_2016$Treatment == 'Newly Grazed']]
-newgrazed_days<-cbind(Date=DL$Date, newgrazed)
-
-#average each row
-ng_days<-c()
-for(i in 1:nrow(newgrazed_days)){
-  ng_days[i]<-rowMeans(newgrazed_days[i,2:ncol(newgrazed_days)],na.rm = TRUE)
-}
-
-newgrazed<-mean<-tibble (
-  Date=newgrazed_days$Date, 
-  Level=ng_days)
-
 
 #grazed
 grazed <- DL[,colnames(DL) %in% days_2016$Pool.ID[days_2016$Treatment == 'Grazed']]
@@ -610,7 +596,8 @@ grazed<-mean<-tibble (
   Date=grazed_days$Date, 
   Level=g_days)
 
-
+ungrazed$Date<-as.Date(ungrazed$Date)
+grazed$Date<-as.Date(grazed$Date)
 #graph
 ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   geom_line(aes(x=Date, y=Level, color="Ungrazed", group=1), size=.75)+
@@ -619,7 +606,7 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   #geom_line(data=precip_2016_by_day, mapping=aes(x=Date, y=rainfall_cm, linetype="Precipitation",group=1))+
  # scale_linetype_manual(name="", 
                #         values=c("Precipitation"="dashed"))+
-  scale_x_date(labels = date_format("%m-%d-%y"), breaks='7 days', expand = c(0,0), )+
+  scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0), )+
   scale_color_manual(name = "", 
                      values = c("Ungrazed" = "blue", "Newly Grazed" = "turquoise", "Continuously Grazed"="maroon"))+
   geom_hline(yintercept=0, color='grey16')+
