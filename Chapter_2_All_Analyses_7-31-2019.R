@@ -36,7 +36,6 @@ days_2017<-read.csv("2017_Master_List.csv")
 qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
 
 
-
 # Calculate total precipitation -------------------------------------------------
 
 #2018
@@ -52,6 +51,7 @@ precip_2017_by_day<-precip_2017 %>%
   summarize(rainfall=sum(Precip, na.rm = TRUE)) %>% 
   slice(2:n())%>% 
   mutate(rainfall_cm=rainfall/10)
+
 #2016- 
 precip_2016_by_day<-precip_2016 %>%
   group_by(Date) %>% 
@@ -65,7 +65,6 @@ precip_by_year<-all_precip %>%
   mutate(avg=mean(rainfall)) %>% 
   mutate(pct_of_avg=rainfall/mean(rainfall))
   
-
 # 2018 Calculate total days of inundation from data loggers --------------------
 
 DL2018<-data_loggers_2018%>%              #Average hourly datalogger data by day
@@ -127,7 +126,7 @@ subset_inundation_days_2018<-Inundation_2018 %>%
   filter(Pair.Paper.2 %in% c(1:17)) %>% 
   filter(Year=='2018')
 
-#Visualize
+#Boxplot days of inundation by treatment 2018
 ggplot(subset_inundation_days_2018, aes(x=Treatment, y=days))+
   geom_boxplot()
 
@@ -135,12 +134,7 @@ ggplot(subset_inundation_days_2018, aes(x=Treatment, y=days))+
 anova<-aov(days~Treatment, subset_inundation_days_2018)
 summary(anova)
 TukeyHSD(anova)
-
-# Compare data logger and staff gauge 
-
-compare_2018<-full_join(dl_days_2018, subset_inundation_days_2018)%>% 
-  mutate(difference=dl_days_2018-days)
-
+#in 2018 only Grazed was different than Ungrazed
 
 
 # 2018 Hydrograph by Treatment --------------------------------------------
@@ -215,18 +209,6 @@ for(i in 1:nrow(newgrazed_days)){
 newgrazed<-mean<-tibble (
   Date=newgrazed_days$Date, 
   Level=ng_days)
-#grazed
-grazed <- DL[,colnames(DL) %in% days_2018$Pool.ID[days_2018$Treatment == 'Grazed']]
-grazed_days<-cbind(Date=DL$Date, grazed)
-
-#average each row
-g_days<-c()
-for(i in 1:nrow(grazed_days)){
-  g_days[i]<-rowMeans(grazed_days[i,2:ncol(grazed_days)])
-}
-grazed<-mean<-tibble (
-  Date=grazed_days$Date, 
-  Level=g_days)
 
 #graph
 ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
@@ -316,7 +298,7 @@ subset_inundation_days_2017<-Inundation_2017 %>%
   filter(Pair.Paper.2 %in% c(1:17)) %>% 
   filter(Year=='2017')
 
-#Visualize
+#days of inundation by treatment 2017
 ggplot(subset_inundation_days_2017, aes(x=Treatment, y=days))+
   geom_boxplot()
 
@@ -325,11 +307,7 @@ anova<-aov(days~Treatment, subset_inundation_days_2017)
 summary(anova)
 TukeyHSD(anova)
 
-# Compare data logger and staff gauge 
-
-compare_2017<-full_join(dl_days_2017, subset_inundation_days_2017, by='Pool.ID')%>% 
-  mutate(difference=dl_days_2017-days)
-
+#no difference between treatments in 2017
 
 # 2017 Hydrograph by Treatment --------------------------------------------
 hydrograph_2017<-gather(hydrograph_2017, "Pool.ID", "Level", 1:101)
@@ -507,13 +485,7 @@ ggplot(subset_inundation_days_2016, aes(x=Treatment, y=days))+
 anova<-aov(days~Treatment, subset_inundation_days_2016)
 summary(anova)
 TukeyHSD(anova)
-
-# Compare data logger and staff gauge 
-
-compare_2016<-full_join(dl_days_2016, subset_inundation_days_2016, by='Pool.ID')%>% 
-  mutate(difference=dl_days_2016-days)
-
-
+#no difference
 
 # 2016 Hydrograph by Treatment --------------------------------------------
 hydrograph_2016<-gather(hydrograph_2016, "Pool.ID", "Level", 1:87)
@@ -629,11 +601,10 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
 
 # Compare all years inundation ----------------------------
 
-test<-full_join(subset_inundation_days_2017, subset_inundation_days_2018, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Calibrated.Days", "Pair.Paper.2"))
+test<-full_join(subset_inundation_days_2017, subset_inundation_days_2018, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Pair.Paper.2"))
 test$Year<-as.factor(test$Year)
 subset_inundation_days_2016$Year<-as.factor(subset_inundation_days_2016$Year)
-test2<-full_join(test, subset_inundation_days_2016, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Calibrated.Days", "Pair.Paper.2"))
-
+test2<-full_join(test, subset_inundation_days_2016, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Pair.Paper.2"))
 
 
 test2<-test2 %>% 
@@ -646,7 +617,6 @@ all_years<-test2%>%
 all_years$Year<-as.factor(all_years$Year)
 
 pd <- position_dodge(0.01)
-
 
 plot<-ggplot(data=all_years, aes(x=Year, y=days1, group=Treatment))+
   geom_line(aes(color=Treatment), size=1.5)+
@@ -675,32 +645,16 @@ plot
 
 
 #Inundation period by grazing and year (all three years)
-anova<-aov(days~Treatment+Year, test2)
-summary(anova) 
-TukeyHSD(anova)
-
-m2<-lmer(days~Treatment+(1|Pool.ID), data=test2)
-anova(m2)
-TukeyHSD(m2)
-
 inundation_days <- lm(days ~ Treatment+Year+Size+Soil.Type, data=test2) 
 summary(aov(inundation_days))
 hist(residuals(inundation_days))
 
 #Inundation period by grazing and year (2017 and 2018 only)
-anova<-aov(days~Treatment+Year, test)
-summary(anova)
-TukeyHSD(anova)
-
-m3<-lmer(days~Treatment*Year+(1|Pool.ID), data=test)
-anova(m3)
-TukeyHSD(m3)
-
 inundation_days <- lm(days ~ Treatment+Year+Size+Soil.Type, data=test) 
 summary(aov(inundation_days))
 hist(residuals(inundation_days))
 
-
+##Need to add in step-wise regression
 
 #RDM by grazing
 ggplot(data=qdata, aes(x=Grazing,y=RDM, fill=Grazing))+
@@ -746,61 +700,6 @@ ggplot(data=qdata, aes(x=Grazing,y=Catchment, fill=Grazing))+
 summary(aov(Catchment~Grazing, qdata))
 
 
-inundation_days2 <- lm(Calibrated.Total.Days~Grazing+Size+Catchment+SoilType, data=qdata) 
-summary(inundation_days2)
-hist(residuals(inundation_days2))
-
-
-
-all_years_combined$Year<-as.factor(all_years_combined$Year)
-all_years<-all_years_combined%>%
-  filter(Pair.Paper.2 %in% c(1:17)) %>% 
-  group_by(Year, Treatment) %>% 
-  summarize(days=mean(Calibrated.Days, na.rm = TRUE), sd=sd(Calibrated.Days, na.rm = TRUE), 
-            sem = sd(Calibrated.Days, na.rm = TRUE)/sqrt(length(Calibrated.Days)))
-all_years$Year<-as.factor(all_years$Year)
-
-
-plot<-ggplot(data=all_years, aes(x=Year, y=days, group=Treatment))+
-  geom_line(aes(color=Treatment), size=1.5)+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_errorbar(aes(ymin=days-sem, ymax=days+sem), width=.025)+
-  geom_point(size=2)+
-  scale_x_discrete(labels=c("2015-2016", "2016-2017", "2017-2018"))+
-  labs(title="Average Days of Innundation by Treatment, 2015-2018", y="Days of Inundation", x="Year")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))+
-  geom_vline(aes(xintercept=2), colour="#990000", linetype="dashed")+
-  annotate("text", x = 2, y =55, label = "Grazing introduced")+
-  annotate("text", x = 2, y =50, label = "to 'New Grazed'")+
-  annotate("text", x = 1, y =185, label = "43.60 cm precip
-  87.3% of 21-year avg")+
-  annotate("text", x = 2, y =185, label = "93.96 cm precip
-  188.00% of 21-year avg")+
-  annotate("text", x = 3, y =185, label = "52.29 cm precip
-  105.7% of 21-year avg")
-plot
-
-
-
-#Inundation period by grazing and year
-anova<-aov(Calibrated.Days~Treatment+Year, all_years_combined)
-summary(anova)
-TukeyHSD(anova)
-
-m2<-lmer(Calibrated.Days~Treatment*Year+(1|Pool.ID), data=all_years_combined)
-summary(anova2)
-TukeyHSD(anova2)
-
-inundation_days <- lm(Calibrated.Days ~ Treatment+Year+Size+Soil.Type, data=all_years_combined) 
-summary(aov(inundation_days))
-hist(residuals(inundation_days))
-
-
 #RDM by grazing
 ggplot(data=qdata, aes(x=Grazing,y=RDM, fill=Grazing))+
   geom_boxplot()+
@@ -841,13 +740,28 @@ ggplot(data=qdata, aes(x=Grazing,y=Catchment, fill=Grazing))+
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-
 summary(aov(Catchment~Grazing, qdata))
 
 
-inundation_days2 <- lm(Calibrated.Total.Days~Grazing+Size+Catchment+SoilType, data=qdata) 
-summary(inundation_days2)
-hist(residuals(inundation_days2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
