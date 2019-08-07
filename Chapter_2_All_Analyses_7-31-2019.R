@@ -149,6 +149,9 @@ SG<-left_join(hydrograph_2018, days_2018) %>%
   filter(Pair.Paper.2%in% c(1:17)) %>% 
   dplyr::select(Pool.ID, Date, Level, Treatment)
 
+#remove pools that didnt have data loggers
+SG<-SG %>% 
+  filter(!Pool.ID %in% c('D5.18', 'D5.21', 'E5.04', 'D5.20', 'C3.13', 'D5.28', 'D6.63', 'E5.03'))
 #average by grazing treatment
 
 SG_graph<-SG %>% 
@@ -167,7 +170,7 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   scale_linetype_manual(name="", 
                      values=c("Precipitation"="dashed"))+
   theme(plot.title=element_text(hjust=.5))+
-  theme(axis.text.y=element_text(size=10))+
+  theme(axis.text.y=element_text(size=15))+
   scale_y_continuous(name="Level (cm)")+
   theme(axis.text.x = element_text(angle=60, size=15))+
   scale_x_date(labels = date_format("%m-%d"), breaks='7 days', expand = c(0,0),
@@ -179,8 +182,9 @@ ggplot(data=SG_graph, mapping=aes(x=Date, y=Level, group=Treatment))+
   theme(axis.title.y =element_text(size=30))+
   theme(legend.title =element_text(size=30))+
   theme(legend.text =element_text(size=30))+
-  theme(axis.text.y =element_text(size=20))
-
+  theme(axis.text.y =element_text(size=20))+
+  theme(axis.text.x =element_text(size=20))
+#1500 x 660
 
 #Data logger hydrographs for ungrazed vs newly grazed (no continuously grazed)
 DL<-DL2018 %>% 
@@ -190,6 +194,7 @@ DL$Date<-as.Date(DL$Date)
 
 #ungrazed
 ungrazed <- DL[,colnames(DL) %in% days_2018$Pool.ID[days_2018$Treatment == 'Ungrazed']] 
+ungrazed<-ungrazed[,-c(6, 11, 12)]
 ungrazed_days<-cbind(Date=DL$Date, ungrazed)
 #average each row
 ug_days<-c()
@@ -201,6 +206,7 @@ ungrazed<-mean<-tibble (
   Level=ug_days)
 #newly grazed
 newgrazed <- DL[,colnames(DL) %in% days_2018$Pool.ID[days_2018$Treatment == 'New Grazed']]
+newgrazed<-newgrazed[,-c(8,13)]
 newgrazed_days<-cbind(Date=DL$Date, newgrazed)
 #average each row
 ng_days<-c()
@@ -226,9 +232,9 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   theme(plot.title=element_text(hjust=.5))+
   theme(axis.text.y=element_text(size=10))+
   scale_y_continuous(name="Level (cm)")+
-  theme(axis.text.x = element_text(angle=60, size=10))+
+  theme(axis.text.x = element_text(angle=60, size=20))+
  # scale_x_discrete(breaks = ungrazed$Date[seq(1, length(ungrazed$Date), by = 30)])+
-  labs(title="Average Vernal Pool Depth by Grazing, 2017-2018", y="Pool Depth", x="Date")+
+  labs(title="Average Vernal Pool Depth by Grazing, 2017-2018", y="Pool Depth", x="")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
   theme(axis.title.y =element_text(size=30))+
@@ -236,6 +242,23 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
   theme(legend.text =element_text(size=30))+
   theme(axis.text.x =element_text(size=20))+
   theme(axis.text.y =element_text(size=20))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1442,7 +1465,7 @@ plot(ef, p.max=0.1)
 quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
 quad
 plot(quad)
-quad<-cca(qdata1~HoofCount+Grazing+Size, env_quad1) THIS ONE IS SIGNIFICANT
+quad<-cca(qdata1~HoofCount+Grazing+Size, env_quad1) #THIS ONE IS SIGNIFICANT
 #the total inertia is decomposed into constrained and unconstrained components
 #'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
 
