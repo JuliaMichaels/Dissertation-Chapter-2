@@ -14,7 +14,8 @@ library('vegan'); library('tidyverse'); library('ggplot2')
 library('lmerTest');
 library('viridis'); library('lme4'); library('dplyr')
 library('gridExtra')
-
+install.packages('ggvegan')
+library(ggvegan)
 
 # Load data ---------------------------------------------------------------
 #calibration<-read.csv("2018 Inundation_Stopping 2018-03-19.csv")
@@ -667,7 +668,7 @@ qdata_select<- qdata %>%
 
 
 #RDM by grazing
-ggplot(data=qdata, aes(x=Grazing,y=RDM, fill=Grazing))+
+ggplot(data=qdata_select, aes(x=Grazing,y=RDM, fill=Grazing))+
   geom_boxplot()+
   labs(title="Residual Dry Matter (RDM) by Grazing", y="RDM", x="Grazing")+
   scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
@@ -678,10 +679,10 @@ ggplot(data=qdata, aes(x=Grazing,y=RDM, fill=Grazing))+
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-summary(aov(RDM~Grazing, qdata))
+summary(aov(RDM~Grazing, qdata_select))
 
 #Pool size by grazing
-ggplot(data=qdata, aes(x=Grazing,y=Size, fill=Grazing))+
+ggplot(data=qdata_select, aes(x=Grazing,y=Size, fill=Grazing))+
   geom_boxplot()+
   labs(title="Pool Size by Grazing", y="Size", x="Grazing")+
   scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
@@ -692,24 +693,25 @@ ggplot(data=qdata, aes(x=Grazing,y=Size, fill=Grazing))+
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-summary(aov(Size~Grazing, qdata))
+summary(aov(Size~Grazing, qdata_select))
 
+## fill in catchment areas
 #catchment area by grazingclass(qdata$Catchment)
-qdata$Catchment<-as.character(qdata$Catchment)
-qdata$Catchment<-as.numeric(qdata$Catchment)
-ggplot(data=qdata, aes(x=Grazing,y=Catchment, fill=Grazing))+
-  geom_boxplot()+
-  scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
-  labs(title="Catchment Size by Grazing", y="Catchment Size (m2)", x="Grazing")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
+#qdata$Catchment<-as.character(qdata$Catchment)
+#qdata$Catchment<-as.numeric(qdata$Catchment)
+#ggplot(data=qdata, aes(x=Grazing,y=Catchment, fill=Grazing))+
+ # geom_boxplot()+
+  #scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
+  #labs(title="Catchment Size by Grazing", y="Catchment Size (m2)", x="Grazing")+
+  #theme(plot.title=element_text(size=30, hjust=.5))+
+  #theme(axis.title.x =element_text(size=30))+
+  #theme(axis.title.y =element_text(size=30))+
+  #theme(legend.title =element_text(size=30))+
+  #theme(legend.text =element_text(size=30))+
+  #theme(axis.text =element_text(size=30))
 
 
-summary(aov(Catchment~Grazing, qdata))
+#summary(aov(Catchment~Grazing, qdata))
 
 
 
@@ -718,7 +720,7 @@ summary(aov(Catchment~Grazing, qdata))
 # Transect data -----------------------------------------------------------
 
 transect_data<-transect_data%>% 
-  filter(Pair.P2 %in% c(1:11)) 
+  filter(Pair.P2 %in% c(1:12)) 
 #Trans_2018<-filter(transect_data, Pair.P2 %in% c(1:12), Year=="2018")
 #head(Trans_2018)
 
@@ -1133,6 +1135,7 @@ summary(aov(rel_cov_nat~Grazing*Hoofprint, transition_diversity_inundation))
 
 
 # 2018 Separated Quadrats in Transition Zones ----------------------------------------------------------------
+qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
 
 #2018 Quadrats in Transition Zones
 qdata$Catchment<-as.character(qdata$Catchment)
@@ -1234,7 +1237,7 @@ qdata2<-qdata %>%
   select(Pool.ID, Quadrat, Hoofprint)
 
 transition_diversity_metrics<-left_join(qdata2, transition_diversity_1, by="Pool.ID") %>% 
-  group_by(Pool.ID, Quadrat.y) %>% 
+  group_by(Pool.ID, Quadrat) %>% 
   filter(row_number()==1)
 
 
@@ -1254,7 +1257,7 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Species Richness`, colou
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Species Richness` ~ days*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
+linearMod1 <- lmer(`Species Richness` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
 summary((anova(linearMod1)))
 hist(residuals(linearMod1))
 
@@ -1275,7 +1278,7 @@ ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Species Richness`, 
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and hoofprints
-linearMod1 <- lmer(`Species Richness` ~ Hoofprint*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
+linearMod1 <- lmer(`Species Richness` ~ Hoofprint*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
 (anova(linearMod1))
 hist(residuals(linearMod1))
 
@@ -1298,7 +1301,7 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Shannon Diversity`, colo
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Shannon Diversity` ~ days*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
+linearMod1 <- lmer(`Shannon Diversity` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
 summary((anova(linearMod1)))
 hist(residuals(linearMod1))
 
@@ -1319,7 +1322,7 @@ ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Shannon Diversity`,
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and hoofprints
-linearMod1 <- lmer(`Shannon Diversity` ~ Hoofprint*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
+linearMod1 <- lmer(`Shannon Diversity` ~ Hoofprint*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
 (anova(linearMod1))
 hist(residuals(linearMod1))
 
@@ -1342,8 +1345,8 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Relative Cover of Native
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Relative Cover of Natives` ~ days*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
-summary((anova(linearMod1)))
+linearMod1 <- lmer(`Relative Cover of Natives` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+(anova(linearMod1))
 hist(residuals(linearMod1))
 
 
@@ -1363,7 +1366,7 @@ ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Relative Cover of N
   theme(axis.text =element_text(size=30))
 
 ###Linear model: specrich by grazing and hoofprints
-linearMod1 <- lmer(`Relative Cover of Natives` ~ Hoofprint*Grazing+(1|Quadrat.y), data=transition_diversity_metrics) 
+linearMod1 <- lmer(`Relative Cover of Natives` ~ Hoofprint*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
 (anova(linearMod1))
 hist(residuals(linearMod1))
 
@@ -1374,9 +1377,180 @@ hist(residuals(linearMod1))
 
 
 
+#2018 Quadrat Ordination -------------------------------------------------
+  qdata1<-qdata%>% 
+  filter(Pair %in% c(1:12)) 
+qdata1<-qdata[,-c(1:14)]
+
+#####PCA#####
+
+quad.pca<-rda(qdata1)
+quad.pca
+ordiplot(quad.pca)
+biplot(quad.pca)
+dim(qdata1)
+
+quad.ca<-cca(qdata1)
+quad.ca
+chisq.test(qdata1/sum(qdata1))
+
+plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
+p0<-plot(quad.ca, choices = c(1, 2), display = c("sp", "wa"),
+         scaling = 2)
+identify(p0, "species")
+
+p1<-plot(quad.ca, dis='sp', type='n')
+
+mod<-decorana(qdata1)
+stems<-colSums(qdata1)
+plot(mod, dis='sp', type='n')
+sel<-orditorp(mod, dis='sp', priority=stems, pcol='grey', pch='+' )
+
+
+###fitting environmental variables####
+
+env_quad1<-
+  tibble(
+    Pool.ID=qdata$Pool.ID,
+    Grazing=qdata$Grazing,
+    In_Days=qdata$Inundation_days,
+    HoofCount=qdata$Hoofprint,
+    RDM=qdata$RDM,
+    # Catchment=qdata$Catchment, can't do because of NAs
+    Soil=qdata$SoilType,
+    Size=qdata$Size,
+    
+  )
+
+env_quad1<-na.omit(env_quad1)
+
+#env_quad1<-full_join(env_quad1, pool_depth, by="Pool.ID")#stuck random values in for C3-17 and D5-08, measure soon
+#env_quad<-env_quad[-c(112:nrow(env_quad)),]
+ef<-envfit(quad.mds2, env_quad1, permu=999, na.rm=TRUE)
+
+ef
+plot(quad.mds2, display='sites')
+plot(ef, p.max=0.1)
+
+###CCA####
+#install.packages('ggfortify'); library('ggfortify')
+#install.packages('ggvegan', dependencies=TRUE, repos='http://cran.rstudio.com/')
+#install.packages('dplyr',  dependencies=TRUE, repos='http://cran.rstudio.com/')
+#nstall.packages('tidyverse'); library('tidyverse')
+#library('ggvegan')
+
+quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
+quad
+plot(quad)
+quad<-cca(qdata1~HoofCount+Grazing+Size, env_quad1) THIS ONE IS SIGNIFICANT
+#the total inertia is decomposed into constrained and unconstrained components
+#'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
+
+#test the significance of the model by permuting the data randomly and refitting the model
+#when the constrained inertia in permutations is always lower than the oberved constrained inertia, the constraints are significant
+anova(quad)
+#don't pay attention to F ratio
+#test significance of the variables
+anova(quad, by='term', step=200)
+anova(quad, by='margin', perm=500)
+anova(quad, by='axis', perm=1000)# Only first axis is significant
+##Try conditioning the CCA on days of inundation, looking just at grazing
+quad2<-cca(qdata1~Grazing+ Condition(In_Days), env_quad1)
+anova(quad2)
+quad3<-cca(qdata1~Grazing, env_quad1)#Grazing alone
+anova(quad3)
+#can sub in grazing treatment for hoofprint
+#Grazing has an effect even when when variation due to inundation days is removed
+#butttt, the variables of hoofprint and days of inundation are linearly dependent
+with(env_quad1, anova(quad, strata=In_Days))
 
 
 
+#Plot CCA#
+p1<-ordiplot(quad)
+identify(p1, "species")
+p1
+p2<-autoplot(quad)+
+  geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad$Grazing),
+             aes(x = CCA1, y = CCA2, colour = Grazing), size = 2)
+
+
+fmod <- fortify(quad)
+size <- 1.8
+
+
+p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
+  geom_text(data = subset(fmod, Score == "species"),
+            colour = 'grey66', size = 3) +
+  geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad1$Grazing),
+             aes(colour = Grazing), size = 2) +
+  scale_colour_brewer("Score", palette = "Set2") +
+  coord_fixed() +
+  theme(legend.position = "top") +
+  geom_segment(data = subset(fmod, Score == "biplot")[c(1:2,5:7),],
+               aes(x = 0, y = 0, xend = CCA1 * 3, yend = CCA2 * 3), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
+  geom_text(data = subset(fmod, Score == "biplot")[c(1:2,5:7),], 
+            aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints",  "Size", "Soil Type", "RDM")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2") +
+  geom_segment(data = subset(fmod, Score == "biplot")[3:4,],
+               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
+  geom_text(data = subset(fmod, Score == "biplot")[3:4,], 
+            aes(x=CCA1,y=CCA2,label=c("New Grazed", "Ungrazed")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
+  geom_segment(data = subset(fmod, Score == "centroids")[1,],
+               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
+  geom_text(data = subset(fmod, Score == "centroids")[1,], 
+            aes(x=CCA1,y=CCA2,label="Grazed"), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")
+p4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# END ---------------------------------------------------------------------
+
+
+# END ---------------------------------------------------------------------
+
+
+
+# Additional code ---------------------------------------------------------
 
 
 # 2018 Quadrat Ordination -------------------------------------------------
@@ -1405,17 +1579,16 @@ env_quad1<-
 #when the constrained inertia in #Permutations is always lower than the oberved constrained inertia, the constraints are significant
 
 
-quad2<-cca(qdata1~In_Days+HoofCount+Size+Soil+RDM, env_quad1)
+quad<-cca(qdata1~In_Days+HoofCount+Size+Soil+RDM, env_quad1)
 plot(quad)
 
 fortify(quad)
-?fortify()
-class(quad)
 
 anova(quad, by='margin', perm=500)
 #don't pay attention to F ratio
 #test significance of the variables
 anova(quad, by='axis', perm=500)# Only first axis is significant
+
 ##Try conditioning the CCA on days of inundation and hoofprint to look separately
 quad2<-cca(qdata1~In_Days+Size+Soil+ Condition(HoofCount), env_quad1)
 anova(quad2, by='margin', perm=500)
@@ -1430,8 +1603,8 @@ p1<-ordiplot(quad)
 identify(p1, "species")
 #p1
 #p2<-autoplot(quad)+
- # geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad$Grazing),
-            # aes(x = CCA1, y = CCA2, colour = Grazing), size = 2)
+# geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad$Grazing),
+# aes(x = CCA1, y = CCA2, colour = Grazing), size = 2)
 
 
 
@@ -1579,7 +1752,7 @@ p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
                aes(x = 0, y = 0, xend = CCA1 * 3, yend = CCA2 * 3), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
   geom_text(data = subset(fmod, Score == "biplot")[c(1:5),], 
             aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints", "Pool Area", "Redding Soil", "RDM")), size=6, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-
+  
   geom_segment(data = subset(fmod, Score == "centroids")[1,],
                aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
   geom_text(data = subset(fmod, Score == "centroids")[1,], 
@@ -1601,6 +1774,65 @@ p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
 
 
 ##when you load data look for qdata why is
+
+
+
+quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
+quad
+plot(quad)
+#the total inertia is decomposed into constrained and unconstrained components
+#'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
+
+#test the significance of the model by permuting the data randomly and refitting the model
+#when the constrained inertia in permutations is always lower than the oberved constrained inertia, the constraints are significant
+anova(quad)
+#don't pay attention to F ratio
+#test significance of the variables
+anova(quad, by='term', step=200)
+anova(quad, by='margin', perm=500)
+anova(quad, by='axis', perm=1000)# Only first axis is significant
+##Try conditioning the CCA on days of inundation, looking just at grazing
+quad2<-cca(qdata1~Grazing+ Condition(In_Days), env_quad1)
+anova(quad2)
+quad3<-cca(qdata1~Grazing, env_quad)#Grazing alone
+anova(quad3)
+#can sub in grazing treatment for hoofprint
+#Grazing has an effect even when when variation due to inundation days is removed
+#butttt, the variables of hoofprint and days of inundation are linearly dependent
+with(env_quad, anova(quad, strata=In_Days))
+
+
+
+
+# 2018 Quadrat Ordination -------------------------------------------------
+
+#####PCA#####
+quad.pca<-rda(qdata1)
+quad.pca
+ordiplot(quad.pca)
+biplot(quad.pca)
+dim(qdata1)
+
+quad.ca<-cca(qdata1[-93,])
+quad.ca
+chisq.test(qdata1/sum(qdata1))
+
+plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
+p0<-plot(quad.ca, choices = c(1, 2), display = c("sp", "wa"),
+         scaling = 2)
+identify(p0, "species")
+
+p1<-plot(quad.ca, dis='sp', type='n')
+
+mod<-decorana(qdata1)
+stems<-colSums(qdata1)
+plot(mod, dis='sp', type='n')
+sel<-orditorp(mod, dis='sp', priority=stems, pcol='grey', pch='+' )
+
+
+
+
+
 
 
 
