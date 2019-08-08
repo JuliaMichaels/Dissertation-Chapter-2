@@ -245,25 +245,6 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 2017 Calculate total days of inundation from data loggers --------------------
 
 DL2017<-data_loggers_2017%>%              #Average hourly datalogger data by day
@@ -629,14 +610,15 @@ ggplot(data=ungrazed, mapping=aes(x=Date, y=Level))+
 
 test<-full_join(subset_inundation_days_2017, subset_inundation_days_2018, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Pair.Paper.2"))
 test$Year<-as.factor(test$Year)
+test<-test%>%
+  filter(Pair.Paper.2 %in% c(1:14)) ## Filter 14 or 17? (missing three data points)
 subset_inundation_days_2016$Year<-as.factor(subset_inundation_days_2016$Year)
 test2<-full_join(test, subset_inundation_days_2016, by=c("Pool.ID", "days","Treatment", "Year", "Shape","Soil.Type", "Size", "Topography", "Pair.Paper.2"))
-
-
 test2<-test2 %>% 
-  filter(!is.na(days))
-all_years<-test2%>%
-  filter(Pair.Paper.2 %in% c(1:17)) %>% 
+  filter(!is.na(days))%>%
+  filter(Pair.Paper.2 %in% c(1:14)) 
+
+all_years<-test2%>% 
   group_by(Year, Treatment) %>% 
   summarize(days1=mean(days, na.rm = TRUE), sd1=sd(days, na.rm = TRUE), 
             sem1 = sd(days, na.rm = TRUE)/sqrt(length(days)))
@@ -660,14 +642,14 @@ plot<-ggplot(data=all_years, aes(x=Year, y=days1, group=Treatment))+
   geom_vline(aes(xintercept=2), colour="#990000", linetype="dashed")+
   annotate("text", x = 2, y =55, label = "Grazing introduced", size=7)+
   annotate("text", x = 2, y =50, label = "to 'New Grazed'", size=7)+
-  annotate("text", x = 1, y =185, label = "43.60 cm precip
-           87.3% of 21-year avg", size=7)+
-  annotate("text", x = 2, y =185, label = "93.96 cm precip
-           188.00% of 21-year avg",size=7)+
-  annotate("text", x = 3, y =185, label = "52.29 cm precip
-           105.7% of 21-year avg", size=7)
+  annotate("text", x = 1, y =30, label = "43.60 cm precip
+           87.3% of 21-year avg", size=5)+
+  annotate("text", x = 2, y =30, label = "93.96 cm precip
+           188.00% of 21-year avg",size=5)+
+  annotate("text", x = 3, y =30, label = "52.29 cm precip
+           105.7% of 21-year avg", size=5)
 plot
-
+#1500x
 
 
 #Inundation period by grazing and year (all three years)
@@ -685,7 +667,9 @@ hist(residuals(inundation_days))
 
 
 # RDM, Pool Size and Catchment Size  ----------------------------------------------------------------
+qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
 qdata_select<- qdata %>% 
+  filter(Pair %in% c(1:12))   %>% 
   group_by(Pool.ID, Grazing, SoilType)%>%
  summarise_if(is.numeric, funs(mean), na.rm=TRUE)
 
@@ -934,7 +918,9 @@ ggplot(data=Transect_shannon, aes(x=Year,y=mean, group=Grazing))+
 
 
 
-# 2018 Quadrats in Transition Zones ----------------------------------------------------------------
+
+# 2018 Separated Quadrats in Transition Zones ----------------------------------------------------------------
+qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
 
 #2018 Quadrats in Transition Zones
 qdata$Catchment<-as.character(qdata$Catchment)
@@ -944,9 +930,11 @@ specid<-read.csv("SpecID.csv", fileEncoding="UTF-8-BOM")
 qdata<-qdata %>% 
   filter(Pair %in% c(1:12))
 
-species<- dplyr::select(qdata, -(Quadrat:Inundation.Type)) %>%  #average the three quadrat samples
-  group_by(Pool.ID)%>%
-  summarise_all(funs(mean))
+species<- dplyr::select(qdata, -(Grazing:Inundation.Type)) 
+
+#%>%  #average the three quadrat samples
+ # group_by(Pool.ID)%>%
+  #summarise_all(funs(mean))
 
 pool_info<-qdata %>% group_by(Pool.ID) %>% 
   filter(row_number()==1) %>% 
@@ -980,233 +968,7 @@ for(i in 1:nrow(natives)){
 
 total_cov <- c()
 for(i in 1:nrow(qdata)){
-  temp <- as.numeric(qdata[i,-(1:13)])
-  total_cov[i] <- sum(temp)
-}
-
-rel_cov_nat<-c()
-for(i in 1:nrow(qdata)){
-  rel_cov_nat[i]<-total_cov_nat[i]/total_cov[i]
-}
-
-
-#create data frame with all community metrics
-transition_diversity <- data.frame(qdata$Pool.ID, qdata$Grazing, spec_rich,shannon, rel_cov_nat)
-names(transition_diversity) <- c("Pool.ID", "Grazing", "Species Richness", "Shannon Diversity", "Relative Cover of Natives")
-
-trans_diversity<-gather(transition_diversity, "Metric", "Value", 3:5)
-
-# plot all 
-transition_diversity_plot<- trans_diversity %>%
-  group_by(Pool.ID, Metric, Grazing, Value) %>% 
-  summarize(days=mean(Value, na.rm = TRUE))
-transition_diversity_plot
-
-TukeyHSD(aov(spec_rich~Grazing, transition_diversity))
-TukeyHSD(aov(shannon~Grazing, transition_diversity))
-TukeyHSD(aov(rel_cov_nat~Grazing, transition_diversity))
-
-plot<-transition_diversity_plot%>% 
-  ggplot(aes(x=Grazing, y=Value, fill=Grazing))+
-  geom_boxplot()+
-  facet_wrap(~Metric, scales="free_y")+
-  scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
-  theme(plot.title=element_text(size=20, hjust=.5))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=20))+
-  theme(strip.text = element_text(size=17))+
-  theme(axis.title.y  = element_blank())+
-  theme(axis.title.x  = element_blank())+
-  theme(axis.text.x  = element_blank())+
-  theme(axis.text.y  = element_text(size=30))
-
-plot
-
-
-add_2018<-subset_inundation_days_2018 %>% 
-  select(Pool.ID, days)
-
-
-transition_diversity_inundation<-full_join(add_2018, transition_diversity) %>%
-  filter(!is.na(Grazing))
-
-transition_diversity_inundation<-full_join(transition_diversity_inundation, qdata)
-  
-#Plot Species richness by days of inundation and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=days,y=spec_rich, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Days of Inundation and Grazing", y="Species Richness", x="Days of Inundation")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-###Linear model: specrich by grazing and inundation
-linearMod1 <- lm(spec_rich ~ days*Grazing, data=transition_diversity_inundation) 
-summary(aov(linearMod1))
-hist(residuals(linearMod1))
-
-
-
-#Plot Species richness by days of hoofprint count and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=spec_rich, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-###Linear model: specrich by grazing and hoofprints
-summary(aov(lm(spec_rich~Hoofprint*Grazing, data=transition_diversity_inundation)))
-
-
-#Plot Shannon by days of inundation and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=days,y=shannon, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Shannon Weiner Diversity by Days of Inundation and Grazing", y="Shannon Weiner", x="Days of Inundation")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-linearMod2 <- lm(shannon ~ days*Grazing, data=transition_diversity_inundation) 
-summary(aov(linearMod2))
-
-     
-#Plot Shannon by  hoofprint count and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=shannon, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-linearMod2 <- lm(shannon ~ Hoofprint*Grazing, data=transition_diversity_inundation) 
-summary(aov(linearMod2))
-
-
-
-#Plot native cover by grazing
-ggplot(data=transition_diversity_inundation, aes(x=Grazing,y=rel_cov_nat))+
-  geom_boxplot()+
-  ggtitle("Relative Native Cover by Grazing")
-
-
-#Plot native cover by days of inundation and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=days,y=rel_cov_nat, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Native Relative Cover by Days of Inundation and Grazing", y="Relative Cover Natives", x="Days of Inundation")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-summary(aov(rel_cov_nat~Grazing*days, transition_diversity_inundation))
-
-
-#Plot Native cover by days of hoofprint count and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=rel_cov_nat, colour=Grazing))+
-  #geom_jitter()+
-  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
-  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
-  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-
-
-summary(aov(rel_cov_nat~Grazing*Hoofprint, transition_diversity_inundation))
-
-
-#summary()#individual coeffeicients fitted to the model
-#summary(aov())#asking if the grazing treatments are different
-
-
-
-
-# 2018 Separated Quadrats in Transition Zones ----------------------------------------------------------------
-qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
-
-#2018 Quadrats in Transition Zones
-qdata$Catchment<-as.character(qdata$Catchment)
-qdata$Catchment<-as.numeric(qdata$Catchment)
-specid<-read.csv("SpecID.csv", fileEncoding="UTF-8-BOM")
-
-qdata<-qdata %>% 
-  filter(Pair %in% c(1:12))
-
-species<- dplyr::select(qdata, -(Grazing:Inundation.Type)) 
-
-#%>%  #average the three quadrat samples
- # group_by(Pool.ID)%>%
-  #summarise_all(funs(mean))
-
-pool_info<-qdata %>% group_by(Pool.ID) %>% 
-  filter(row_number()==1) %>% 
-  dplyr::select(Pool.ID:Inundation.Type, -Quadrat)
-
-qdata<-right_join(pool_info, species)#combine community data with pool characteristics
-
-
-#Calculate diversity indices
-
-#species richness
-spec_rich<-c()
-for(i in 1:nrow(qdata)){
-  spec_rich[i]<-sum(qdata[i,-(1:13)]>0)
-}
-
-#shannon weiner
-shannon <- c()
-for(i in 1:nrow(qdata)){
-  temp <- as.numeric(qdata[i,-(1:13)])
-  shannon[i] <- diversity(temp)
-}
-
-#Calculate the relative cover of natives
-natives <- qdata[,colnames(qdata) %in% specid$SpeciesIDCode[specid$Status == 'Native']]
-
-total_cov_nat<-c()
-for(i in 1:nrow(natives)){
-  total_cov_nat[i]<-sum(natives[i,1:ncol(natives)])
-}
-
-total_cov <- c()
-for(i in 1:nrow(qdata)){
-  temp <- as.numeric(qdata[i,-(1:13)])
+  temp <- as.numeric(qdata[i,-(1:15)])
   total_cov[i] <- sum(temp)
 }
 
@@ -1325,7 +1087,7 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Shannon Diversity`, colo
 
 ###Linear model: specrich by grazing and inundation
 linearMod1 <- lmer(`Shannon Diversity` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-summary((anova(linearMod1)))
+anova(linearMod1)
 hist(residuals(linearMod1))
 
 
@@ -1399,11 +1161,236 @@ hist(residuals(linearMod1))
 
 
 
+# 2018 Averaged Quadrats in Transition Zones ----------------------------------------------------------------
+
+qdata<-read.csv("2017-2018 Vegetation Quadrats.csv",fileEncoding="UTF-8-BOM")
+#2018 Quadrats in Transition Zones
+qdata$Catchment<-as.character(qdata$Catchment)
+qdata$Catchment<-as.numeric(qdata$Catchment)
+specid<-read.csv("SpecID.csv", fileEncoding="UTF-8-BOM")
+
+qdata<-qdata %>% 
+  filter(Pair %in% c(1:12))
+
+species<- dplyr::select(qdata, -(Grazing:Inundation.Type)) %>%  #average the three quadrat samples
+  group_by(Pool.ID)%>%
+  summarise_all(funs(mean))
+
+pool_info<-qdata %>% group_by(Pool.ID) %>% 
+  filter(row_number()==1) %>% 
+  dplyr::select(Pool.ID:Inundation.Type, -Quadrat)
+
+qdata<-right_join(pool_info, species)#combine community data with pool characteristics
+
+
+#Calculate diversity indices
+
+#species richness
+spec_rich<-c()
+for(i in 1:nrow(qdata)){
+  spec_rich[i]<-sum(qdata[i,-(1:15)]>0)
+}
+
+#shannon weiner
+shannon <- c()
+for(i in 1:nrow(qdata)){
+  temp <- as.numeric(qdata[i,-(1:15)])
+  shannon[i] <- diversity(temp)
+}
+
+#Calculate the relative cover of natives
+natives <- qdata[,colnames(qdata) %in% specid$SpeciesIDCode[specid$Status == 'Native']]
+
+total_cov_nat<-c()
+for(i in 1:nrow(natives)){
+  total_cov_nat[i]<-sum(natives[i,1:ncol(natives)])
+}
+
+total_cov <- c()
+for(i in 1:nrow(qdata)){
+  temp <- as.numeric(qdata[i,-(1:15)])
+  total_cov[i] <- sum(temp)
+}
+
+rel_cov_nat<-c()
+for(i in 1:nrow(qdata)){
+  rel_cov_nat[i]<-total_cov_nat[i]/total_cov[i]
+}
+
+
+#create data frame with all community metrics
+transition_diversity <- data.frame(qdata$Pool.ID, qdata$Grazing, spec_rich,shannon, rel_cov_nat)
+names(transition_diversity) <- c("Pool.ID", "Grazing", "Species Richness", "Shannon Diversity", "Relative Cover of Natives")
+
+trans_diversity<-gather(transition_diversity, "Metric", "Value", 3:5)
+
+# plot all 
+transition_diversity_plot<- trans_diversity %>%
+  group_by(Pool.ID, Metric, Grazing, Value) %>% 
+  summarize(days=mean(Value, na.rm = TRUE))
+transition_diversity_plot
+
+TukeyHSD(aov(spec_rich~Grazing, transition_diversity))
+TukeyHSD(aov(shannon~Grazing, transition_diversity))
+TukeyHSD(aov(rel_cov_nat~Grazing, transition_diversity))
+
+plot<-transition_diversity_plot%>% 
+  ggplot(aes(x=Grazing, y=Value, fill=Grazing))+
+  geom_boxplot()+
+  facet_wrap(~Metric, scales="free_y")+
+  scale_fill_manual(values=c("maroon", "turquoise", "blue"))+
+  theme(plot.title=element_text(size=20, hjust=.5))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=20))+
+  theme(strip.text = element_text(size=17))+
+  theme(axis.title.y  = element_blank())+
+  theme(axis.title.x  = element_blank())+
+  theme(axis.text.x  = element_blank())+
+  theme(axis.text.y  = element_text(size=30))
+
+plot
+
+
+add_2018<-subset_inundation_days_2018 %>% 
+  select(Pool.ID, days)
+
+
+transition_diversity_inundation<-full_join(add_2018, transition_diversity) %>%
+  filter(!is.na(Grazing))
+
+transition_diversity_inundation<-full_join(transition_diversity_inundation, qdata)
+
+#Plot Species richness by days of inundation and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=days,y=spec_rich, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Species Richness by Days of Inundation and Grazing", y="Species Richness", x="Days of Inundation")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+###Linear model: specrich by grazing and inundation
+linearMod1 <- lm(spec_rich ~ days*Grazing, data=transition_diversity_inundation) 
+summary(aov(linearMod1))
+hist(residuals(linearMod1))
+
+
+
+#Plot Species richness by days of hoofprint count and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=spec_rich, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+###Linear model: specrich by grazing and hoofprints
+summary(aov(lm(spec_rich~Hoofprint*Grazing, data=transition_diversity_inundation)))
+#but for this you should keep the quadrats separate
+
+#Plot Shannon by days of inundation and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=days,y=shannon, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Shannon Weiner Diversity by Days of Inundation and Grazing", y="Shannon Weiner", x="Days of Inundation")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+linearMod2 <- lm(shannon ~ days*Grazing, data=transition_diversity_inundation) 
+summary(aov(linearMod2))
+
+
+#Plot Shannon by  hoofprint count and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=shannon, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+linearMod2 <- lm(shannon ~ Hoofprint*Grazing, data=transition_diversity_inundation) 
+summary(aov(linearMod2))
+
+
+
+#Plot native cover by grazing
+ggplot(data=transition_diversity_inundation, aes(x=Grazing,y=rel_cov_nat))+
+  geom_boxplot()+
+  ggtitle("Relative Native Cover by Grazing")
+
+
+#Plot native cover by days of inundation and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=days,y=rel_cov_nat, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Native Relative Cover by Days of Inundation and Grazing", y="Relative Cover Natives", x="Days of Inundation")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+summary(aov(rel_cov_nat~Grazing*days, transition_diversity_inundation))
+
+
+#Plot Native cover by days of hoofprint count and treatment 
+ggplot(data=transition_diversity_inundation, aes(x=Hoofprint,y=rel_cov_nat, colour=Grazing))+
+  #geom_jitter()+
+  scale_color_manual(values=c("maroon", "turquoise", "blue"))+
+  geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
+  stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
+  labs(title="Species Richness by Hoofprint Count and Grazing", y="Species Richness", x="Hoofprint Count")+
+  theme(plot.title=element_text(size=30, hjust=.5))+
+  theme(axis.title.x =element_text(size=30))+
+  theme(axis.title.y =element_text(size=30))+
+  theme(legend.title =element_text(size=30))+
+  theme(legend.text =element_text(size=30))+
+  theme(axis.text =element_text(size=30))
+
+
+
+summary(aov(rel_cov_nat~Grazing*Hoofprint, transition_diversity_inundation))
+
+
+#summary()#individual coeffeicients fitted to the model
+#summary(aov())#asking if the grazing treatments are different
+
+
+
 
 #2018 Quadrat Ordination -------------------------------------------------
-  qdata1<-qdata%>% 
+ qdata<-qdata[-36,]
+ qdata1<-qdata%>% 
   filter(Pair %in% c(1:12)) 
-qdata1<-qdata[,-c(1:14)]
+qdata1<-qdata[-36,-c(1:14)]
+
 
 #####PCA#####
 
