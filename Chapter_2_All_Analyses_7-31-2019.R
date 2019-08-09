@@ -1393,7 +1393,6 @@ qdata1<-qdata[-36,-c(1:14)]
 
 
 #####PCA#####
-
 quad.pca<-rda(qdata1)
 quad.pca
 ordiplot(quad.pca)
@@ -1405,16 +1404,6 @@ quad.ca
 chisq.test(qdata1/sum(qdata1))
 
 plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
-p0<-plot(quad.ca, choices = c(1, 2), display = c("sp", "wa"),
-         scaling = 2)
-identify(p0, "species")
-
-p1<-plot(quad.ca, dis='sp', type='n')
-
-mod<-decorana(qdata1)
-stems<-colSums(qdata1)
-plot(mod, dis='sp', type='n')
-sel<-orditorp(mod, dis='sp', priority=stems, pcol='grey', pch='+' )
 
 
 ###fitting environmental variables####
@@ -1452,7 +1441,11 @@ plot(ef, p.max=0.1)
 quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
 quad
 plot(quad)
-quad<-cca(qdata1~HoofCount+Grazing+Size, env_quad1) #THIS ONE IS SIGNIFICANT
+quad<-cca(qdata1~HoofCount+Grazing+Size+Soil+RDM, env_quad1) #THIS ONE IS SIGNIFICANT
+#Need to figure out which one is best-stepwiae regression?
+
+
+
 #the total inertia is decomposed into constrained and unconstrained components
 #'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
 
@@ -1477,14 +1470,6 @@ with(env_quad1, anova(quad, strata=In_Days))
 
 
 #Plot CCA#
-p1<-ordiplot(quad)
-identify(p1, "species")
-p1
-p2<-autoplot(quad)+
-  geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad$Grazing),
-             aes(x = CCA1, y = CCA2, colour = Grazing), size = 2)
-
-
 fmod <- fortify(quad)
 size <- 1.8
 
@@ -1500,15 +1485,15 @@ p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
   geom_segment(data = subset(fmod, Score == "biplot")[c(1:2,5:7),],
                aes(x = 0, y = 0, xend = CCA1 * 3, yend = CCA2 * 3), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
   geom_text(data = subset(fmod, Score == "biplot")[c(1:2,5:7),], 
-            aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints",  "Size", "Soil Type", "RDM")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2") +
-  geom_segment(data = subset(fmod, Score == "biplot")[3:4,],
-               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "biplot")[3:4,], 
-            aes(x=CCA1,y=CCA2,label=c("New Grazed", "Ungrazed")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-  geom_segment(data = subset(fmod, Score == "centroids")[1,],
-               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "centroids")[1,], 
-            aes(x=CCA1,y=CCA2,label="Grazed"), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")
+            aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints",  "Size", "Soil Type", "RDM")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2") 
+#  geom_segment(data = subset(fmod, Score == "biplot")[3:4,],
+           #    aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
+#  geom_text(data = subset(fmod, Score == "biplot")[3:4,], 
+          #  aes(x=CCA1,y=CCA2,label=c("New Grazed", "Ungrazed")), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
+ # geom_segment(data = subset(fmod, Score == "centroids")[1,],
+               #aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) 
+ # geom_text(data = subset(fmod, Score == "centroids")[1,], 
+           # aes(x=CCA1,y=CCA2,label="Grazed"), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")
 p4
 
 
@@ -1536,308 +1521,6 @@ p4
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# END ---------------------------------------------------------------------
-
-
-# END ---------------------------------------------------------------------
-
-
-
-# Additional code ---------------------------------------------------------
-
-
-# 2018 Quadrat Ordination -------------------------------------------------
-
-qdata1<-transition_diversity_inundation[,-c(1:16)]
-qdata1<-qdata1[-c(35:36),]
-transition_diversity_inundation<-transition_diversity_inundation[-c(35:36),]
-
-env_quad1<-
-  tibble(
-    Pool.ID=transition_diversity_inundation$Pool.ID,
-    Grazing=transition_diversity_inundation$Grazing,
-    In_Days=transition_diversity_inundation$days,
-    HoofCount=transition_diversity_inundation$Hoofprint,
-    RDM=transition_diversity_inundation$RDM,
-    # Catchment=qdata$Catchment, can't do because of NAs
-    Soil=transition_diversity_inundation$SoilType,
-    Size=transition_diversity_inundation$Size
-  )
-
-
-
-#the total inertia is decomposed into constrained and unconstrained components
-#'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
-#test the significance of the model by permuting the data randomly and refitting the model
-#when the constrained inertia in #Permutations is always lower than the oberved constrained inertia, the constraints are significant
-
-
-quad<-cca(qdata1~In_Days+HoofCount+Size+Soil+RDM, env_quad1)
-plot(quad)
-
-fortify(quad)
-
-anova(quad, by='margin', perm=500)
-#don't pay attention to F ratio
-#test significance of the variables
-anova(quad, by='axis', perm=500)# Only first axis is significant
-
-##Try conditioning the CCA on days of inundation and hoofprint to look separately
-quad2<-cca(qdata1~In_Days+Size+Soil+ Condition(HoofCount), env_quad1)
-anova(quad2, by='margin', perm=500)
-
-quad3<-cca(qdata1~HoofCount+Size+Soil+ Condition(In_Days), env_quad1)
-anova(quad3, by='margin', perm=500)
-
-#constrained-- inertia explained by your variables
-#compare the constrained inertia in the conditioned vs. non-conditioned model
-#Plot CCA#
-p1<-ordiplot(quad)
-identify(p1, "species")
-#p1
-#p2<-autoplot(quad)+
-# geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad$Grazing),
-# aes(x = CCA1, y = CCA2, colour = Grazing), size = 2)
-
-
-
-fmod <- fortify(quad)
-size <- 1.8
-
-
-p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
-  geom_text(data = subset(fmod, Score == "species"),
-            colour = 'grey66', size = 6) +
-  geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad1$Grazing),
-             aes(colour = Grazing), size = 4) +
-  scale_colour_brewer("Score", palette = "Set2") +
-  coord_fixed() +
-  theme(legend.position = "top") +
-  geom_segment(data = subset(fmod, Score == "biplot")[c(1:5),],
-               aes(x = 0, y = 0, xend = CCA1 * 3, yend = CCA2 * 3), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "biplot")[c(1:5),], 
-            aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints", "Pool Area", "Redding Soil", "RDM")), size=5, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-  
-  geom_segment(data = subset(fmod, Score == "centroids")[1,],
-               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "centroids")[1,], 
-            aes(x=CCA1,y=CCA2,label="Corning Soil"), size=5, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-  
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-
-p4
-
-
-# END ---------------------------------------------------------------------
-
-
-
-
-
-#####PCA#####
-qdata1<-qdata[,-c(1:14)]
-qdata1<-(!is.na(qdata1))
-quad.pca<-rda(qdata1)
-quad.pca
-ordiplot(quad.pca)
-biplot(quad.pca)
-dim(qdata1)
-
-quad.ca<-cca(qdata1[-93,])
-quad.ca
-chisq.test(qdata1/sum(qdata1))
-
-plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
-p0<-plot(quad.ca, choices = c(1, 2), display = c("sp", "wa"),
-         scaling = 2)
-identify(p0, "species")
-
-p1<-plot(quad.ca, dis='sp', type='n')
-
-mod<-decorana(qdata1)
-stems<-colSums(qdata1)
-plot(mod, dis='sp', type='n')
-sel<-orditorp(mod, dis='sp', priority=stems, pcol='grey', pch='+' )
-
-
-###fitting environmental variables####
-
-env_quad1<-
-  tibble(
-    Pool.ID=qdata$Pool.ID,
-    Grazing=qdata$Grazing,
-    In_Days=qdata$Calibrated.Total.Days,
-    HoofCount=qdata$Hoofprint,
-    RDM=qdata$RDM,
-    # Catchment=qdata$Catchment, can't do because of NAs
-    Soil=qdata$SoilType,
-    Size=qdata$Size
-  )
-
-#env_quad1<-full_join(env_quad1, pool_depth, by="Pool.ID")#stuck random values in for C3-17 and D5-08, measure soon
-#env_quad<-env_quad[-c(112:nrow(env_quad)),]
-ef<-envfit(quad.mds2, env_quad1, permu=999, na.rm=TRUE)
-
-ef
-plot(quad.mds2, display='sites')
-plot(ef, p.max=0.1)
-
-###CCA####
-install.packages('ggfortify'); library('ggfortify')
-install.packages('ggvegan', dependencies=TRUE, repos='http://cran.rstudio.com/')
-install.packages('dplyr',  dependencies=TRUE, repos='http://cran.rstudio.com/')
-install.packages('tidyverse'); library('tidyverse')
-library('ggvegan')
-
-quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
-quad
-plot(quad)
-#the total inertia is decomposed into constrained and unconstrained components
-#'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
-
-#test the significance of the model by permuting the data randomly and refitting the model
-#when the constrained inertia in permutations is always lower than the oberved constrained inertia, the constraints are significant
-anova(quad)
-#don't pay attention to F ratio
-#test significance of the variables
-anova(quad, by='term', step=200)
-anova(quad, by='margin', perm=500)
-anova(quad, by='axis', perm=1000)# Only first axis is significant
-##Try conditioning the CCA on days of inundation, looking just at grazing
-quad2<-cca(qdata1~Grazing+ Condition(HoofCount), env_quad1)
-anova(quad2)
-anova(quad2, by='margin', perm=500)
-
-quad3<-cca(qdata1~Grazing, env_quad1)
-
-#the effect of grazing is independent from inundation days
-
-#constrained-- inertia explained by your variables
-#compare the constrained inertia in the conditioned vs. non-conditioned model
-
-quad3<-cca(qdata1~Grazing, env_quad1)#Grazing alone
-anova(quad3)
-#can sub in grazing treatment for hoofprint
-#Grazing has an effect even when when variation due to inundation days is removed
-#butttt, the variables of hoofprint and days of inundation are linearly dependent
-with(env_quad, anova(quad, strata=In_Days))
-
-
-#Plot CCA#
-fmod <- fortify(quad)
-size <- 1.8
-
-p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
-  geom_text(data = subset(fmod, Score == "species"),
-            colour = 'grey66', size = 6) +
-  geom_point(data = cbind(subset(fmod, Score == "sites"), Grazing = env_quad1$Grazing),
-             aes(colour = Grazing), size = 6) +
-  scale_colour_brewer("Score", palette = "Set2") +
-  coord_fixed() +
-  theme(legend.position = "top") +
-  geom_segment(data = subset(fmod, Score == "biplot")[c(1:5),],
-               aes(x = 0, y = 0, xend = CCA1 * 3, yend = CCA2 * 3), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "biplot")[c(1:5),], 
-            aes(x=CCA1 * 3,y=CCA2 *3,label=c("Hydroperiod", "Hoofprints", "Pool Area", "Redding Soil", "RDM")), size=6, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-  
-  geom_segment(data = subset(fmod, Score == "centroids")[1,],
-               aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(1/2, 'picas')), colour = "gray24", size = 1) +
-  geom_text(data = subset(fmod, Score == "centroids")[1,], 
-            aes(x=CCA1,y=CCA2,label="Corning Soil"), size=6, colour = "gray24") + xlab("CCA1") + ylab("CCA2")+
-  
-  theme(plot.title=element_text(size=30, hjust=.5))+
-  theme(axis.title.x =element_text(size=30))+
-  theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
-  theme(legend.text =element_text(size=30))+
-  theme(axis.text =element_text(size=30))
-
-
-
-
-
-
-
-
-
-##when you load data look for qdata why is
-
-
-
-quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
-quad
-plot(quad)
-#the total inertia is decomposed into constrained and unconstrained components
-#'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
-
-#test the significance of the model by permuting the data randomly and refitting the model
-#when the constrained inertia in permutations is always lower than the oberved constrained inertia, the constraints are significant
-anova(quad)
-#don't pay attention to F ratio
-#test significance of the variables
-anova(quad, by='term', step=200)
-anova(quad, by='margin', perm=500)
-anova(quad, by='axis', perm=1000)# Only first axis is significant
-##Try conditioning the CCA on days of inundation, looking just at grazing
-quad2<-cca(qdata1~Grazing+ Condition(In_Days), env_quad1)
-anova(quad2)
-quad3<-cca(qdata1~Grazing, env_quad)#Grazing alone
-anova(quad3)
-#can sub in grazing treatment for hoofprint
-#Grazing has an effect even when when variation due to inundation days is removed
-#butttt, the variables of hoofprint and days of inundation are linearly dependent
-with(env_quad, anova(quad, strata=In_Days))
-
-
-
-
-# 2018 Quadrat Ordination -------------------------------------------------
-
-#####PCA#####
-quad.pca<-rda(qdata1)
-quad.pca
-ordiplot(quad.pca)
-biplot(quad.pca)
-dim(qdata1)
-
-quad.ca<-cca(qdata1[-93,])
-quad.ca
-chisq.test(qdata1/sum(qdata1))
-
-plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
-p0<-plot(quad.ca, choices = c(1, 2), display = c("sp", "wa"),
-         scaling = 2)
-identify(p0, "species")
-
-p1<-plot(quad.ca, dis='sp', type='n')
-
-mod<-decorana(qdata1)
-stems<-colSums(qdata1)
-plot(mod, dis='sp', type='n')
-sel<-orditorp(mod, dis='sp', priority=stems, pcol='grey', pch='+' )
 
 
 
