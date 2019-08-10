@@ -17,6 +17,8 @@ library('gridExtra')
 install.packages('ggvegan')
 library(ggvegan)
 
+#install.packages('ggfortify'); library('ggfortify')
+
 # Load data ---------------------------------------------------------------
 #calibration<-read.csv("2018 Inundation_Stopping 2018-03-19.csv")
 data_loggers_2018<-read.csv('2018_Levelloggers.csv')
@@ -977,12 +979,16 @@ for(i in 1:nrow(qdata)){
   rel_cov_nat[i]<-total_cov_nat[i]/total_cov[i]
 }
 
+qdata_info<-qdata %>% 
+  dplyr::select(Pool.ID:Depth)
 
 #create data frame with all community metrics
-transition_diversity <- data.frame(qdata$Pool.ID, qdata$Grazing, spec_rich,shannon, rel_cov_nat)
-names(transition_diversity) <- c("Pool.ID", "Grazing", "Species Richness", "Shannon Diversity", "Relative Cover of Natives")
+transition_diversity <- data.frame(qdata_info, spec_rich,shannon, rel_cov_nat)
+colnames(transition_diversity)[colnames(transition_diversity)=="spec_rich"]<- "Species Richness"
+colnames(transition_diversity)[colnames(transition_diversity)=="shannon"]<- "Shannon Diversity"
+colnames(transition_diversity)[colnames(transition_diversity)=="rel_cov_nat"]<- "Relative Cover of Natives"
 
-trans_diversity<-gather(transition_diversity, "Metric", "Value", 3:5)
+trans_diversity<-gather(transition_diversity, "Metric", "Value", 11:13)
 
 # plot all 
 transition_diversity_plot<- trans_diversity %>%
@@ -1041,11 +1047,6 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Species Richness`, colou
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Species Richness` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-summary((anova(linearMod1)))
-hist(residuals(linearMod1))
-
 
 
 #Plot Species richness by days of hoofprint count and treatment 
@@ -1062,12 +1063,22 @@ ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Species Richness`, 
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-###Linear model: specrich by grazing and hoofprints
-linearMod1 <- lmer(`Species Richness` ~ Hoofprint*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-(anova(linearMod1))
-hist(residuals(linearMod1))
+###Linear model: 
+
+###Linear model: specrich by grazing and inundation
+LM1 <- lmer(`Species Richness` ~ Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM2 <- lmer(`Species Richness` ~ days+Grazing+(1|Quadrat), data=transition_diversity_metrics) ##Best fit
+LM3 <- lmer(`Species Richness` ~ Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM4 <- lmer(`Species Richness` ~ days+Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM5 <- lmer(`Species Richness` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM6 <- lmer(`Species Richness` ~ days+Grazing+Size+(1|Quadrat), data=transition_diversity_metrics) 
+LM7 <- lmer(`Species Richness` ~ Hoofprint.x*Grazing+(1|Quadrat), data=transition_diversity_metrics)
 
 
+AIC(LM1, LM2, LM3, LM4, LM5, LM6, LM7)
+
+
+summary(LM2)
 
 
 
@@ -1085,15 +1096,10 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Shannon Diversity`, colo
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Shannon Diversity` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-anova(linearMod1)
-hist(residuals(linearMod1))
-
 
 
 #Plot Species richness by days of hoofprint count and treatment 
-ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Shannon Diversity`, colour=Grazing))+
+ggplot(data=transition_diversity_metrics, aes(x=Hoofprint.y, y=`Shannon Diversity`, colour=Grazing))+
   #geom_jitter()+
   scale_color_manual(values=c("maroon", "turquoise", "blue"))+
   geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
@@ -1112,7 +1118,20 @@ linearMod1 <- lmer(`Shannon Diversity` ~ Hoofprint*Grazing+(1|Quadrat), data=tra
 hist(residuals(linearMod1))
 
 
+###Linear model: specrich by grazing and inundation
+LM1 <- lmer(`Shannon Diversity` ~ Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM2 <- lmer(`Shannon Diversity` ~ days+Grazing+(1|Quadrat), data=transition_diversity_metrics) ##Best fit
+LM3 <- lmer(`Shannon Diversity` ~ Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM4 <- lmer(`Shannon Diversity` ~ days+Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM5 <- lmer(`Shannon Diversity` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM6 <- lmer(`Shannon Diversity` ~ days+Grazing+Size+(1|Quadrat), data=transition_diversity_metrics) 
+LM7 <- lmer(`Shannon Diversity` ~ Hoofprint.x*Grazing+(1|Quadrat), data=transition_diversity_metrics)
 
+
+AIC(LM1, LM2, LM3, LM4, LM5, LM6, LM7)
+
+
+summary((LM1))
 
 
 #Plot Relative Cover of Natives by days of inundation and treatment 
@@ -1121,39 +1140,55 @@ ggplot(data=transition_diversity_metrics, aes(x=days,y=`Relative Cover of Native
   scale_color_manual(values=c("maroon", "turquoise", "blue"))+
   geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
   stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Days of Inundation and Grazing", y="Species Richness", x="Days of Inundation")+
+  labs(title="Relative Cover of Natives by Days of Inundation and Grazing", y="Relative Cover of Natives", x="Days of Inundation")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
   theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
+  theme(legend.title =element_blank())+
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-###Linear model: specrich by grazing and inundation
-linearMod1 <- lmer(`Relative Cover of Natives` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-(anova(linearMod1))
-hist(residuals(linearMod1))
-
-
 
 #Plot Relative Cover of Natives by days of hoofprint count and treatment 
-ggplot(data=transition_diversity_metrics, aes(x=Hoofprint,y=`Relative Cover of Natives`, colour=Grazing))+
+ggplot(data=transition_diversity_metrics, aes(x=Hoofprint.y, y=`Relative Cover of Natives`, colour=Grazing))+
   #geom_jitter()+
   scale_color_manual(values=c("maroon", "turquoise", "blue"))+
   geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
   stat_smooth(method='lm', se=FALSE, fullrange = TRUE, size=2)+
-  labs(title="Species Richness by Hoofprint Count and Grazing", y="Relative Cover of Natives", x="Hoofprint Count")+
+  labs(title="Relative Cover of Natives by Hoofprint Count and Grazing", y="Relative Cover of Natives", x="Hoofprint Count")+
   theme(plot.title=element_text(size=30, hjust=.5))+
   theme(axis.title.x =element_text(size=30))+
   theme(axis.title.y =element_text(size=30))+
-  theme(legend.title =element_text(size=30))+
+  theme(legend.title =element_blank())+
   theme(legend.text =element_text(size=30))+
   theme(axis.text =element_text(size=30))
 
-###Linear model: specrich by grazing and hoofprints
-linearMod1 <- lmer(`Relative Cover of Natives` ~ Hoofprint*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
-(anova(linearMod1))
-hist(residuals(linearMod1))
+
+
+
+###Linear model: specrich by grazing and inundation
+LM1 <- lmer(`Relative Cover of Natives` ~ Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM2 <- lmer(`Relative Cover of Natives` ~ days+Grazing+(1|Quadrat), data=transition_diversity_metrics) ##Best fit
+LM3 <- lmer(`Relative Cover of Natives` ~ Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM4 <- lmer(`Relative Cover of Natives` ~ days+Hoofprint.x+Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM5 <- lmer(`Relative Cover of Natives` ~ days*Grazing+(1|Quadrat), data=transition_diversity_metrics) 
+LM6 <- lmer(`Relative Cover of Natives` ~ days+Grazing+Size+(1|Quadrat), data=transition_diversity_metrics) 
+LM7 <- lmer(`Relative Cover of Natives` ~ Hoofprint.x*Grazing+(1|Quadrat), data=transition_diversity_metrics)
+
+
+AIC(LM1, LM2, LM3, LM4, LM5, LM6, LM7)
+
+summary(LM1)
+
+
+
+
+
+
+
+
+
+
 
 
 #summary()#individual coeffeicients fitted to the model
@@ -1230,8 +1265,11 @@ transition_diversity_plot<- trans_diversity %>%
   summarize(days=mean(Value, na.rm = TRUE))
 transition_diversity_plot
 
+summary(aov(spec_rich~Grazing, transition_diversity))
 TukeyHSD(aov(spec_rich~Grazing, transition_diversity))
+summary(aov(shannon~Grazing, transition_diversity))
 TukeyHSD(aov(shannon~Grazing, transition_diversity))
+summary(aov(rel_cov_nat~Grazing, transition_diversity))
 TukeyHSD(aov(rel_cov_nat~Grazing, transition_diversity))
 
 plot<-transition_diversity_plot%>% 
@@ -1301,7 +1339,7 @@ summary(aov(lm(spec_rich~Hoofprint*Grazing, data=transition_diversity_inundation
 #but for this you should keep the quadrats separate
 
 #Plot Shannon by days of inundation and treatment 
-ggplot(data=transition_diversity_inundation, aes(x=days,y=shannon, colour=Grazing))+
+ggplot(data=transition_diversity_inundation, aes(x=days,y="Shannon Diveristy", colour=Grazing))+
   #geom_jitter()+
   scale_color_manual(values=c("maroon", "turquoise", "blue"))+
   geom_point(mapping=aes(group=cut_width(days, 15)), size=4)+
@@ -1391,21 +1429,6 @@ summary(aov(rel_cov_nat~Grazing*Hoofprint, transition_diversity_inundation))
   filter(Pair %in% c(1:12)) 
 qdata1<-qdata[-36,-c(1:14)]
 
-
-#####PCA#####
-quad.pca<-rda(qdata1)
-quad.pca
-ordiplot(quad.pca)
-biplot(quad.pca)
-dim(qdata1)
-
-quad.ca<-cca(qdata1)
-quad.ca
-chisq.test(qdata1/sum(qdata1))
-
-plot(quad.ca, display=c('sites', 'sp')) #'sp' only displays labels, why can't both be displayed at the same time?
-
-
 ###fitting environmental variables####
 
 env_quad1<-
@@ -1423,42 +1446,35 @@ env_quad1<-
 
 env_quad1<-na.omit(env_quad1)
 
-#env_quad1<-full_join(env_quad1, pool_depth, by="Pool.ID")#stuck random values in for C3-17 and D5-08, measure soon
-#env_quad<-env_quad[-c(112:nrow(env_quad)),]
-ef<-envfit(quad.mds2, env_quad1, permu=999, na.rm=TRUE)
-
-ef
-plot(quad.mds2, display='sites')
-plot(ef, p.max=0.1)
 
 ###CCA####
-#install.packages('ggfortify'); library('ggfortify')
-#install.packages('ggvegan', dependencies=TRUE, repos='http://cran.rstudio.com/')
-#install.packages('dplyr',  dependencies=TRUE, repos='http://cran.rstudio.com/')
-#nstall.packages('tidyverse'); library('tidyverse')
-#library('ggvegan')
 
-quad<-cca(qdata1~In_Days+HoofCount+Grazing+Size+Soil+RDM, env_quad1)#will want to condition on year for transects
-quad
-plot(quad)
-quad<-cca(qdata1~HoofCount+Grazing+Size+Soil+RDM, env_quad1) #THIS ONE IS SIGNIFICANT
-#Need to figure out which one is best-stepwiae regression?
+#Need to figure out which one is best-stepwiae regression
+
+## With scope present, the default direction is "both"
+ordistep(mod0, scope = formula(mod1), perm.max = 200)
+
+quad1<-cca(qdata1~1, env_quad1)
+quad2<-cca(qdata1~., env_quad1)
+ordistep(quad1, scope = formula(quad2), perm.max = 200)
 
 
 
+quad<-cca(qdata1~Grazing+Size, env_quad1) #lowest AIC
+anova(quad)
 #the total inertia is decomposed into constrained and unconstrained components
 #'proportion of inertia' doesn't really have a clear meaning in CCA (not lioke in RDA)
 
 #test the significance of the model by permuting the data randomly and refitting the model
 #when the constrained inertia in permutations is always lower than the oberved constrained inertia, the constraints are significant
-anova(quad)
+
 #don't pay attention to F ratio
 #test significance of the variables
 anova(quad, by='term', step=200)
 anova(quad, by='margin', perm=500)
 anova(quad, by='axis', perm=1000)# Only first axis is significant
 ##Try conditioning the CCA on days of inundation, looking just at grazing
-quad2<-cca(qdata1~Grazing+ Condition(In_Days), env_quad1)
+quad2<-cca(qdata1~Grazing+Condition(In_Days), env_quad1)
 anova(quad2)
 quad3<-cca(qdata1~Grazing, env_quad1)#Grazing alone
 anova(quad3)
@@ -1474,6 +1490,9 @@ fmod <- fortify(quad)
 size <- 1.8
 
 
+
+
+#need to fix this to reflect whatever model you finally choose
 p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
   geom_text(data = subset(fmod, Score == "species"),
             colour = 'grey66', size = 3) +
@@ -1495,7 +1514,6 @@ p4<-ggplot(fmod, aes(x = CCA1, y = CCA2, label=Label)) +
  # geom_text(data = subset(fmod, Score == "centroids")[1,], 
            # aes(x=CCA1,y=CCA2,label="Grazed"), size=4, colour = "gray24") + xlab("CCA1") + ylab("CCA2")
 p4
-
 
 
 
